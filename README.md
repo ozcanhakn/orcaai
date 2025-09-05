@@ -58,7 +58,7 @@ OrcaAI is an intelligent AI orchestration platform that automatically routes you
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/orcaai.git
+git clone https://github.com/ozcanhakn/orcaai.git
 cd orcaai
 
 # Run the setup script
@@ -146,7 +146,7 @@ package main
 
 import (
     "fmt"
-    "github.com/yourusername/orcaai-go"
+    "github.com/ozcanhakn/orcaai-go"
 )
 
 func main() {
@@ -356,7 +356,7 @@ make dev
 
 - **📧 Email**: support@orcaai.dev
 - **💬 Discord**: [Join our community](https://discord.gg/orcaai)
-- **🐛 Issues**: [GitHub Issues](https://github.com/yourusername/orcaai/issues)
+- **🐛 Issues**: [GitHub Issues](https://github.com/ozcanhakn/orcaai/issues)
 - **📖 Docs**: [Documentation Site](https://docs.orcaai.dev)
 
 ## 🎉 Community
@@ -382,6 +382,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ by developers, for developers**
 
-[⭐ Star us on GitHub](https://github.com/yourusername/orcaai) • [🚀 Try the demo](https://demo.orcaai.dev) • [📖 Read the docs](https://docs.orcaai.dev)
+[⭐ Star us on GitHub](https://github.com/ozcanhakn/orcaai) • [🚀 Try the demo](https://demo.orcaai.dev) • [📖 Read the docs](https://docs.orcaai.dev)
 
 </div>
