@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'orcaai-backend'
+    static_configs:
+      - targets: ['backend:8080']
+  
+  - job_name: 'orcaai-dashboard'
+    static_configs:
+      - targets: ['dashboard:3000']

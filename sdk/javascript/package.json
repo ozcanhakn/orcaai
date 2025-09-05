@@ -1,0 +1,30 @@
+{
+  "name": "@orcaai/sdk",
+  "version": "1.0.0",
+  "description": "JavaScript SDK for the OrcaAI platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc"
+  },
+  "keywords": [
+    "ai",
+    "orchestration",
+    "sdk",
+    "orcaai"
+  ],
+  "author": "OrcaAI Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "jest": "^29.7.0",
+    "typescript": "^5.2.0"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ]
+}

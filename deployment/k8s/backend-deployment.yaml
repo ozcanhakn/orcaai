@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orcaai-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orcaai-backend
+  template:
+    metadata:
+      labels:
+        app: orcaai-backend
+    spec:
+      containers:
+      - name: backend
+        image: orcaai/backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "orcaai"
+        - name: DB_USER
+          value: "orcaai_user"
+        - name: DB_PASSWORD
+          value: "orcaai_password"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orcaai-backend-service
+spec:
+  selector:
+    app: orcaai-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

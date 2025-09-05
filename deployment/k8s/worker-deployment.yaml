@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orcaai-ai-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orcaai-ai-worker
+  template:
+    metadata:
+      labels:
+        app: orcaai-ai-worker
+    spec:
+      containers:
+      - name: worker
+        image: orcaai/ai-worker:latest
+        env:
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orcaai-worker-service
+spec:
+  selector:
+    app: orcaai-ai-worker
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
