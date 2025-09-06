@@ -310,8 +310,8 @@ async def update_metrics(provider: str, success: bool, latency: int):
     # Update counters
     if success:
         await redis_client.incr(f"metrics:{provider}:success")
-        await redis_client.lpush(f"metrics:{provider}:latencies", latency)
-        await redis_client.ltrim(f"metrics:{provider}:latencies", 0, 99)  # Keep last 100 latencies
+        await redis_client.lpush(f"metrics:{provider}:latencies", latency)  # pyright: ignore[reportGeneralTypeIssues]
+        await redis_client.ltrim(f"metrics:{provider}:latencies", 0, 99)  # Keep last 100 latencies  # pyright: ignore[reportGeneralTypeIssues]
     else:
         await redis_client.incr(f"metrics:{provider}:errors")
     
@@ -326,11 +326,11 @@ async def get_metrics():
     metrics = {}
     
     for provider in PROVIDERS.keys():
-        success_count = await redis_client.get(f"metrics:{provider}:success") or 0
-        error_count = await redis_client.get(f"metrics:{provider}:errors") or 0
+        success_count = await redis_client.get(f"metrics:{provider}:success") or 0  # pyright: ignore[reportOptionalMemberAccess]
+        error_count = await redis_client.get(f"metrics:{provider}:errors") or 0  # pyright: ignore[reportOptionalMemberAccess]
         
         # Get average latency
-        latencies = await redis_client.lrange(f"metrics:{provider}:latencies", 0, -1)
+        latencies = await redis_client.lrange(f"metrics:{provider}:latencies", 0, -1)  # pyright: ignore[reportGeneralTypeIssues, reportOptionalMemberAccess]
         avg_latency = sum(map(int, latencies)) / len(latencies) if latencies else 0
         
         # Calculate reliability
@@ -376,11 +376,11 @@ async def smart_routing(request: dict):
     
     for provider_name in PROVIDERS.keys():
         # Get recent performance data
-        success_count = int(await redis_client.get(f"metrics:{provider_name}:success") or 0)
-        error_count = int(await redis_client.get(f"metrics:{provider_name}:errors") or 0)
+        success_count = int(await redis_client.get(f"metrics:{provider_name}:success") or 0)  # pyright: ignore[reportOptionalMemberAccess]
+        error_count = int(await redis_client.get(f"metrics:{provider_name}:errors") or 0)  # pyright: ignore[reportOptionalMemberAccess]
         
         # Get average latency
-        latencies = await redis_client.lrange(f"metrics:{provider_name}:latencies", 0, 9)  # Last 10 requests
+        latencies = await redis_client.lrange(f"metrics:{provider_name}:latencies", 0, 9)  # Last 10 requests  # pyright: ignore[reportGeneralTypeIssues, reportOptionalMemberAccess]
         avg_latency = sum(map(int, latencies)) / len(latencies) if latencies else 2000
         
         # Calculate reliability

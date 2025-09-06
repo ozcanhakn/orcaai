@@ -25,7 +25,9 @@ func Register(c *gin.Context) {
 
 	// Check if user already exists
 	var existingUser models.User
-	err := database.DB.Get(&existingUser, "SELECT id FROM users WHERE email = $1", registration.Email)
+	query := "SELECT id FROM users WHERE email = $1"
+	row := database.DB.QueryRow(query, registration.Email)
+	err := row.Scan(&existingUser.ID)
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
 		return
@@ -50,7 +52,7 @@ func Register(c *gin.Context) {
 	}
 
 	// Insert user into database
-	query := `
+	query = `
 		INSERT INTO users (id, email, password_hash, name, role, is_active, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 	`
@@ -99,7 +101,8 @@ func Login(c *gin.Context) {
 	// Find user by email
 	var user models.User
 	query := "SELECT id, email, password_hash, name, role, is_active, created_at, updated_at FROM users WHERE email = $1"
-	err := database.DB.Get(&user, query, login.Email)
+	row := database.DB.QueryRow(query, login.Email)
+	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return

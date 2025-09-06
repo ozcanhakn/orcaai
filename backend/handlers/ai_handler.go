@@ -137,7 +137,7 @@ func AIQuery(c *gin.Context) {
 	latency := int(time.Since(startTime).Milliseconds())
 
 	// Cache the response using the orchestrator's cache function
-	orchestrator.CacheResult(req.Prompt, req.TaskType, aiResponse.Provider, aiResponse.Model, aiResponse)
+	orchestrator.CacheResponseResult(req.Prompt, req.TaskType, aiResponse.Provider, aiResponse.Model, aiResponse)
 
 	// Log successful request
 	logRequest(userID.(string), requestID, aiResponse.Provider, req, aiResponse, latency, false, nil)
@@ -420,10 +420,46 @@ func GetAPIKeys(c *gin.Context) {
 	// Fetch API keys from database
 	var apiKeys []models.APIKey
 	query := "SELECT id, user_id, name, key, permissions, is_active, created_at, updated_at FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC"
-	err := database.DB.Select(&apiKeys, query, userID)
+	
+	rows, err := database.DB.Query(query, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to fetch API keys",
+			"details": err.Error(),
+		})
+		return
+	}
+	defer rows.Close()
+	
+	// Scan rows into apiKeys slice
+	for rows.Next() {
+		var apiKey models.APIKey
+		var permissionsStr string
+		err := rows.Scan(&apiKey.ID, &apiKey.UserID, &apiKey.Name, &apiKey.Key, &permissionsStr, &apiKey.IsActive, &apiKey.CreatedAt, &apiKey.UpdatedAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to scan API key",
+				"details": err.Error(),
+			})
+			return
+		}
+		
+		// Parse permissions string into slice
+		if err := json.Unmarshal([]byte(permissionsStr), &apiKey.Permissions); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to parse permissions",
+				"details": err.Error(),
+			})
+			return
+		}
+		
+		apiKeys = append(apiKeys, apiKey)
+	}
+	
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to iterate API keys",
 			"details": err.Error(),
 		})
 		return

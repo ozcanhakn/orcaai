@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"orcaai-cli/commands"
+	"github.com/ozcanhakn/orcaai-go/commands"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

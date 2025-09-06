@@ -28,7 +28,7 @@ var configSetCmd = &cobra.Command{
 		viper.Set(key, value)
 
 		// Write the config to file
-		if err := writeConfig(); err != nil {
+		if err := writeConfigCmd(); err != nil {
 			fmt.Printf("Error writing config: %v\n", err)
 			return
 		}
@@ -67,7 +67,7 @@ func init() {
 	ConfigCmd.AddCommand(configListCmd)
 }
 
-func writeConfig() error {
+func writeConfigCmd() error {
 	// Get the config directory
 	configDir, err := os.UserConfigDir()
 	if err != nil {

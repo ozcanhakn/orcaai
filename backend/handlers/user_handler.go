@@ -25,7 +25,8 @@ func GetProfile(c *gin.Context) {
 	// Fetch user from database
 	var user models.User
 	query := "SELECT id, email, name, role, is_active, created_at, updated_at FROM users WHERE id = $1"
-	err := database.DB.Get(&user, query, userID)
+	row := database.DB.QueryRow(query, userID)
+	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to fetch user profile",
@@ -131,7 +132,8 @@ func UpdateProfile(c *gin.Context) {
 	// Fetch updated user
 	var updatedUser models.User
 	query = "SELECT id, email, name, role, is_active, created_at, updated_at FROM users WHERE id = $1"
-	err = database.DB.Get(&updatedUser, query, userID)
+	row2 := database.DB.QueryRow(query, userID)
+	err = row2.Scan(&updatedUser.ID, &updatedUser.Email, &updatedUser.Name, &updatedUser.Role, &updatedUser.IsActive, &updatedUser.CreatedAt, &updatedUser.UpdatedAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to fetch updated user profile",

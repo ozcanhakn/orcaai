@@ -92,7 +92,7 @@ var QueryCmd = &cobra.Command{
 	},
 }
 
-func writeConfig() error {
+func writeQueryConfig() error {
 	// Get the config directory
 	configDir, err := os.UserConfigDir()
 	if err != nil {

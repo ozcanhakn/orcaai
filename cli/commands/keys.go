@@ -208,7 +208,7 @@ func init() {
 	KeysCmd.AddCommand(keysDeleteCmd)
 }
 
-func writeConfig() error {
+func writeKeysConfig() error {
 	// Get the config directory
 	configDir, err := os.UserConfigDir()
 	if err != nil {

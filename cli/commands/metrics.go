@@ -66,7 +66,11 @@ var MetricsCmd = &cobra.Command{
 	},
 }
 
-func writeConfig() error {
+func init() {
+
+}
+
+func writeMetricsConfig() error {
 	// Get the config directory
 	configDir, err := os.UserConfigDir()
 	if err != nil {

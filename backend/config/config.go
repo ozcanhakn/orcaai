@@ -34,8 +34,23 @@ type Config struct {
 }
 
 func Load() *Config {
+	// Construct database URL from environment variables if they exist
+	dbHost := getEnv("DB_HOST", "localhost")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbName := getEnv("DB_NAME", "orcaai")
+	dbUser := getEnv("DB_USER", "orcaai_user")
+	dbPassword := getEnv("DB_PASSWORD", "orcaai_password")
+	
+	// If DB_HOST is set and not localhost, construct the database URL from components
+	var databaseURL string
+	if dbHost != "localhost" || os.Getenv("DB_HOST") != "" {
+		databaseURL = "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+	} else {
+		databaseURL = getEnv("DATABASE_URL", "postgres://localhost/orcaai?sslmode=disable")
+	}
+	
 	return &Config{
-		DatabaseURL:      getEnv("DATABASE_URL", "postgres://localhost/orcaai?sslmode=disable"),
+		DatabaseURL:      databaseURL,
 		RedisURL:         getEnv("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:        getEnv("JWT_SECRET", "your-super-secret-jwt-key-change-this"),
 		Port:            getEnv("PORT", "8080"),

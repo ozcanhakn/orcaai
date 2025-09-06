@@ -90,7 +90,11 @@ var ProvidersCmd = &cobra.Command{
 	},
 }
 
-func writeConfig() error {
+func init() {
+
+}
+
+func writeProvidersConfig() error {
 	// Get the config directory
 	configDir, err := os.UserConfigDir()
 	if err != nil {

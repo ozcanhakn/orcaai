@@ -58,7 +58,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:  # pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")
@@ -82,7 +82,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:  # pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")
@@ -106,7 +106,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:  # pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")
@@ -130,7 +130,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:# pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")
@@ -159,7 +159,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:# pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")
@@ -186,7 +186,7 @@ class OrcaClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if response.status_code == 401:
+            if response.status_code == 401:# pyright: ignore[reportPossiblyUnboundVariable]
                 raise AuthenticationError("Invalid API key")
             else:
                 raise APIError(f"API request failed: {e}")

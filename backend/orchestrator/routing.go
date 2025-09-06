@@ -555,8 +555,8 @@ func GetProviderStats() map[string]interface{} {
 	return stats
 }
 
-// CacheResult stores the result in cache
-func CacheResult(prompt, taskType, provider, model string, response interface{}) error {
+// CacheResponseResult stores the result in cache
+func CacheResponseResult(prompt, taskType, provider, model string, response interface{}) error {
 	if cache == nil {
 		return nil
 	}
