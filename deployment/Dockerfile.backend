@@ -1,19 +1,24 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
+# Install git and ca-certificates
+RUN apk add --no-cache git ca-certificates
+
 WORKDIR /app
 
-# Copy go mod and sum files
-COPY backend/go.mod backend/go.sum ./
+# Copy go mod and sum files from root directory
+COPY go.mod go.sum ./
 
 # Download all dependencies
 RUN go mod download
 
-# Copy source code
-COPY backend/ .
+# Copy all source code and .env file
+COPY backend/ ./backend/
+COPY .env ./
+COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./backend
 
 # Final stage
 FROM alpine:latest
@@ -22,11 +27,13 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder stage
+# Copy the binary and .env from builder stage
 COPY --from=builder /app/main .
+COPY --from=builder /app/.env .
 
-# Copy config files if any
-COPY backend/.env .env
+# Create a non-root user
+RUN adduser -D -s /bin/sh appuser
+USER appuser
 
 EXPOSE 8080
 

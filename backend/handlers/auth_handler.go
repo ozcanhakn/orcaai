@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"orcaai/database"
-	"orcaai/middleware"
-	"orcaai/models"
+	"orcaai/backend/database"
+	"orcaai/backend/middleware"
+	"orcaai/backend/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

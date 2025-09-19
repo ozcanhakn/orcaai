@@ -22,6 +22,7 @@ class OrcaClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         })
+        self.session.max_redirects = 3
 
     def query(self, prompt: str, task_type: str = "text-generation", 
               provider: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
@@ -64,6 +65,21 @@ class OrcaClient:
                 raise APIError(f"API request failed: {e}")
         except requests.exceptions.RequestException as e:
             raise OrcaAIException(f"Request failed: {e}")
+
+    def stream_query(self, prompt: str, task_type: str = "text-generation", 
+                     provider: Optional[str] = None, model: Optional[str] = None):
+        """Stream response via SSE (server emits single chunk for now)."""
+        try:
+            init = self.session.post(f"{self.base_url}/api/v1/ai/query/stream", json={
+                "prompt": prompt, "task_type": task_type, "provider": provider, "model": model
+            })
+            init.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise OrcaAIException(f"Failed to initiate stream: {e}")
+        with requests.get(f"{self.base_url}/api/v1/ai/query/stream", headers=self.session.headers, stream=True) as r:
+            for line in r.iter_lines():
+                if line and line.startswith(b"data: "):
+                    yield line[len(b"data: "):].decode("utf-8")
 
     def get_providers(self) -> Dict[str, Any]:
         """

@@ -86,6 +86,85 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+// RateLimitMiddleware provides simple IP-based rate limiting
+func RateLimitMiddleware(limitPerMinute int) gin.HandlerFunc {
+    type bucket struct{ count int; reset int64 }
+    var store = make(map[string]*bucket)
+    return func(c *gin.Context) {
+        key := c.ClientIP()
+        now := time.Now().Unix()
+        b, ok := store[key]
+        if !ok || now >= b.reset {
+            store[key] = &bucket{count: 0, reset: now + 60}
+            b = store[key]
+        }
+        if b.count >= limitPerMinute {
+            c.Header("Retry-After", "60")
+            c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "rate limit exceeded"})
+            return
+        }
+        b.count++
+        c.Next()
+    }
+}
+
+// IdempotencyMiddleware deduplicates POST requests with Idempotency-Key header
+func IdempotencyMiddleware() gin.HandlerFunc {
+    type entry struct{ status int; body []byte; ts time.Time }
+    var cache = make(map[string]*entry)
+    return func(c *gin.Context) {
+        if c.Request.Method != http.MethodPost {
+            c.Next()
+            return
+        }
+        key := c.GetHeader("Idempotency-Key")
+        if key == "" {
+            c.Next()
+            return
+        }
+        if e, ok := cache[key]; ok && time.Since(e.ts) < 5*time.Minute {
+            c.Writer.WriteHeaderNow()
+            c.Writer.Write(e.body)
+            c.Abort()
+            return
+        }
+        rw := &bufferedWriter{ResponseWriter: c.Writer}
+        c.Writer = rw
+        c.Next()
+        cache[key] = &entry{status: rw.status, body: rw.buf, ts: time.Now()}
+    }
+}
+
+type bufferedWriter struct {
+    gin.ResponseWriter
+    buf    []byte
+    status int
+}
+
+func (w *bufferedWriter) WriteHeader(code int) {
+    w.status = code
+    w.ResponseWriter.WriteHeader(code)
+}
+
+// SecurityHeadersMiddleware adds common security headers
+func SecurityHeadersMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Header("X-Content-Type-Options", "nosniff")
+        c.Header("X-Frame-Options", "DENY")
+        c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+        c.Header("X-XSS-Protection", "0")
+        c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        // Basic CSP; consider tightening in production
+        c.Header("Content-Security-Policy", "default-src 'self'; connect-src *; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'unsafe-inline'")
+        c.Next()
+    }
+}
+
+func (w *bufferedWriter) Write(b []byte) (int, error) {
+    w.buf = append(w.buf, b...)
+    return w.ResponseWriter.Write(b)
+}
+
 // GenerateToken creates a new JWT token for a user
 func GenerateToken(userID uuid.UUID, email, role string, isActive bool) (string, error) {
 	// Set expiration time (24 hours)

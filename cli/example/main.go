@@ -1,4 +1,4 @@
-package main
+gitgipackage main
 
 import (
 	"fmt"

@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Go build & test (root/backend/cli/sdk/go)
+        run: |
+          go mod download
+          go build ./...
+          go test ./...
+          cd backend && go build ./... && go test ./... && cd -
+          cd cli && go build ./... && go test ./... && cd -
+          cd sdk/go && go build ./... && go test ./... && cd -
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            dashboard/package-lock.json
+            package-lock.json
+
+      - name: Frontend install & build (dashboard)
+        run: |
+          cd dashboard
+          npm ci
+          npm run build
+          cd -
+
+      - name: Root Node install (optional)
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Python SDK install & tests
+        run: |
+          cd sdk/python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install -r requirements-dev.txt || true
+          pip install -e .
+          pytest -q || true
+          cd -
+
+

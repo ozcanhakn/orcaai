@@ -6,15 +6,20 @@ services:
     image: postgres:15
     container_name: orcaai-postgres
     environment:
-      POSTGRES_DB: orcaai
-      POSTGRES_USER: orcaai_user
-      POSTGRES_PASSWORD: orcaai_password
+      POSTGRES_DB: orcaaidb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456789
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - orcaai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orcaaidb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -26,28 +31,48 @@ services:
       - redis_data:/data
     networks:
       - orcaai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Backend API Service
   backend:
     build:
-      context: ../backend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deployment/Dockerfile.backend
     container_name: orcaai-backend
     ports:
       - "8080:8080"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=orcaai
-      - DB_USER=orcaai_user
-      - DB_PASSWORD=orcaai_password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      PORT: "8080"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "orcaaidb"
+      DB_USER: "postgres"
+      DB_PASSWORD: "123456789"
+      REDIS_ADDR: "redis:6379"
+      JWT_SECRET: "your-jwt-secret-here"
+      OPENAI_API_KEY: "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"
+      CLAUDE_API_KEY: "your-claude-api-key-here"
+      GEMINI_API_KEY: "AIzaSyArwjxCVXUMfIBKcNVpS983moJ6Ln6caYM"
+      CACHE_ENABLED: "true"
+      CACHE_EXPIRATION: "24h"
+      RATE_LIMIT: "100"
+      RATE_LIMIT_WINDOW: "1h"
+      PROMETHEUS_ENABLED: "true"
+      LOG_LEVEL: "info"
+      PYTHON_WORKER_URL: "http://ai-worker:8001"
+      DEBUG: "true"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - orcaai-network
+    restart: unless-stopped
 
   # Python AI Worker
   ai-worker:
@@ -59,9 +84,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - orcaai-network
+    restart: unless-stopped
 
   # Frontend Dashboard
   dashboard:
@@ -72,11 +99,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
     depends_on:
       - backend
     networks:
       - orcaai-network
+    restart: unless-stopped
 
   # Prometheus for monitoring
   prometheus:
@@ -88,6 +116,7 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - orcaai-network
+    restart: unless-stopped
 
   # Grafana for visualization
   grafana:
@@ -103,6 +132,7 @@ services:
       - prometheus
     networks:
       - orcaai-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

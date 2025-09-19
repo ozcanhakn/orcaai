@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"orcaai/database"
-	"orcaai/models"
+	"orcaai/backend/database"
+	"orcaai/backend/models"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"

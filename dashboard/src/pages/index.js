@@ -77,11 +77,19 @@ export default function Home() {
               <span className="text-2xl font-bold text-white">OrcaAI</span>
             </div>
             <div className="flex items-center space-x-6">
-              <Link href="/dashboard" className="text-gray-300 hover:text-white transition-colors">
-                Dashboard
+                            <Link
+                href="/login"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2 hover:bg-blue-700"
+              >
+                Login
+                <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="/docs" className="text-gray-300 hover:text-white transition-colors">
-                Docs
+              <Link
+                href="/docs"
+                className="text-gray-300 px-6 py-3 rounded-lg inline-flex items-center gap-2 hover:text-white"
+              >
+                View API Docs
+                <ArrowRight className="w-4 h-4" />
               </Link>
               <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all">
                 Get Started

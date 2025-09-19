@@ -56,6 +56,17 @@ class OrcaClient {
         'Content-Type': 'application/json'
       }
     });
+    // Simple retry interceptor with exponential backoff
+    this.axios.interceptors.response.use(undefined, async (error) => {
+      const cfg = error.config || {};
+      cfg.__retryCount = cfg.__retryCount || 0;
+      const max = options.maxRetries ?? 3;
+      if (cfg.__retryCount >= max) return Promise.reject(error);
+      cfg.__retryCount += 1;
+      const delay = Math.min(1000 * Math.pow(2, cfg.__retryCount - 1), 8000);
+      await new Promise(r => setTimeout(r, delay));
+      return this.axios(cfg);
+    });
   }
 
   /**
@@ -87,6 +98,32 @@ class OrcaClient {
     } catch (error) {
       this._handleError(error);
     }
+  }
+
+  /**
+   * Stream a query response via SSE
+   * @param {string} prompt
+   * @param {Object} [options]
+   * @param {(chunk: object) => void} onMessage
+   * @returns {() => void} unsubscribe function
+   */
+  streamQuery(prompt, options = {}, onMessage) {
+    const url = new URL('/api/v1/ai/query/stream', this.baseUrl);
+    const es = new (require('eventsource'))(url.toString(), {
+      headers: { 'Authorization': `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' }
+    });
+    es.onmessage = (e) => {
+      try { onMessage && onMessage(JSON.parse(e.data)); } catch {}
+    };
+    es.onerror = () => { es.close(); };
+    // send payload via separate POST is typical, but here we keep SSE simple; server currently emits single chunk
+    this.axios.post('/api/v1/ai/query/stream', {
+      prompt,
+      task_type: options.taskType || 'text-generation',
+      provider: options.provider,
+      model: options.model,
+    }).catch(() => es.close());
+    return () => es.close();
   }
 
   /**

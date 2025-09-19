@@ -1,0 +1,17 @@
+# API anahtarı oluşturma
+./orcaai keys create
+
+# Basit sorgu
+./orcaai query "Yapay zeka nedir?"
+
+# Gelişmiş sorgu
+./orcaai query "Python nedir?" --task-type explanation --cost-weight 0.7 --latency-weight 0.3
+
+# Metrikleri görüntüleme
+./orcaai metrics show
+
+# Maliyet raporunu görüntüleme
+./orcaai metrics costs
+
+# Yardım
+./orcaai --help

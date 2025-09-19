@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts'
-import { 
-  Activity, 
-  Clock, 
-  DollarSign, 
-  Shield, 
-  Brain,
-  AlertTriangle,
-  CheckCircle
-} from 'lucide-react'
-import Link from 'next/link'
-import MetricCard from '../components/MetricCard'
-import ChartContainer from '../components/ChartContainer'
+import {
+    Activity,
+    AlertTriangle,
+    Brain,
+    CheckCircle,
+    Clock, DollarSign, Shield
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    Tooltip,
+    XAxis, YAxis
+} from 'recharts';
+import MetricCard from '../components/MetricCard';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState({
@@ -24,11 +32,17 @@ export default function Dashboard() {
       totalRequests: 0,
       avgLatency: 0,
       costSavings: 0,
-      uptime: 0
+      uptime: 0,
+      activeProviders: 0,
+      totalCost: 0,
+      cacheHitRate: 0,
+      errorRate: 0
     }
-  })
+  });
 
-  const [timeRange, setTimeRange] = useState('24h')
+  const [selectedProvider, setSelectedProvider] = useState('all');
+  const [timeRange, setTimeRange] = useState('24h');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Simulated real-time metrics - replace with actual API calls

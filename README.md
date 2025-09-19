@@ -61,13 +61,9 @@ OrcaAI is an intelligent AI orchestration platform that automatically routes you
 git clone https://github.com/ozcanhakn/orcaai.git
 cd orcaai
 
-# Run the setup script
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-
-# Configure your API keys
-cp .env.example .env
-# Edit .env and add your AI provider API keys
+# Docker ile hızlı başlatma
+cd deployment
+docker compose up --build
 ```
 
 ### 🔧 Manual Setup
@@ -107,6 +103,8 @@ npm run dev
 - **🐍 Python Worker**: http://localhost:8001
 - **❤️ Health Check**: http://localhost:8080/health
 
+> Not: Dashboard’ın backend’e bağlanması için `NEXT_PUBLIC_API_BASE` ayarı gerekir. Docker compose bunu sağlar, manuel kurulumda aşağıya bakın.
+
 ## 💻 Usage Examples
 
 ### REST API
@@ -134,9 +132,15 @@ response = client.query(
     task_type="code-generation"
 )
 
-print(response.content)
-print(f"Cost: ${response.cost:.4f}")
-print(f"Provider: {response.provider}")
+print(response["content"])
+print(f"Cost: ${response['cost']:.4f}")
+print(f"Provider: {response['provider']}")
+
+"""
+Streaming örneği:
+for chunk in client.stream_query("stream an example"):
+    print("chunk:", chunk)
+"""
 ```
 
 ### Go SDK
@@ -207,23 +211,55 @@ orcaai metrics --last-7-days
 ### Environment Variables
 
 ```bash
-# Core Configuration
-DATABASE_URL=postgres://user:pass@localhost/orcaai
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-super-secret-key
+# Core
+PORT=8080
+DATABASE_URL=postgres://postgres:postgres@db:5432/orcaai?sslmode=disable
+REDIS_URL=redis://redis:6379/0
+JWT_SECRET=replace-with-strong-secret
 
-# AI Provider Keys
+# Provider Secrets (fallback)
 OPENAI_API_KEY=sk-your-openai-key
-CLAUDE_API_KEY=your-claude-key  
+CLAUDE_API_KEY=your-claude-key
 GEMINI_API_KEY=your-gemini-key
 
-# Caching
-CACHE_ENABLED=true
-CACHE_EXPIRATION=24h
+# Encryption (AES-256: 32 byte, 64 hex char)
+PROVIDER_SECRET_KEY=your-64-hex-key
 
-# Monitoring
-PROMETHEUS_ENABLED=true
-LOG_LEVEL=info
+# Cache
+CACHE_TYPE=memory   # or redis
+CACHE_REDIS_ADDR=redis:6379
+CACHE_REDIS_PASSWORD=
+
+# Frontend
+NEXT_PUBLIC_API_BASE=http://localhost:8080/api/v1
+```
+
+### Admin: Sağlayıcı Anahtarlarının Güvenli Saklanması
+
+Uygulama, sağlayıcı API anahtarlarını veritabanında AES-GCM ile şifreleyerek saklar. Öncelik sırası: DB’deki şifreli anahtar > ortam değişkeni fallback.
+
+1) `PROVIDER_SECRET_KEY` ayarlayın (AES-256, 64 hex):
+2) Admin olarak oturum açtıktan sonra anahtar yazın:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/providers/key \
+ -H "Authorization: Bearer ADMIN_TOKEN" \
+ -H "Content-Type: application/json" \
+ -d '{"provider":"openai","api_key":"<OPENAI_API_KEY>"}'
+
+curl "http://localhost:8080/api/v1/admin/providers/key/status?provider=openai" \
+ -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+### Streaming API
+
+Basit SSE akışı (tek chunk; ileride gerçek token akışına genişletilebilir):
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/query/stream \
+ -H "Authorization: Bearer TOKEN" \
+ -H "Content-Type: application/json" \
+ -d '{"prompt":"stream this"}'
 ```
 
 ### Routing Configuration
@@ -259,11 +295,9 @@ routing:
 ### Docker Compose
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# Scale workers
-docker-compose up -d --scale python-worker=3
+cd deployment
+docker compose up --build
+docker compose logs -f
 ```
 
 ### Kubernetes
@@ -278,13 +312,13 @@ kubectl scale deployment orcaai-backend --replicas=5
 
 ### Production Checklist
 
-- [ ] Configure secure JWT secrets
-- [ ] Set up SSL/TLS certificates
-- [ ] Configure database backups
-- [ ] Set up monitoring and alerting
-- [ ] Configure log aggregation
-- [ ] Set up API rate limiting
-- [ ] Configure cache expiration policies
+- [ ] Strong `JWT_SECRET` ve `PROVIDER_SECRET_KEY`
+- [ ] SSL/TLS (Ingress/Proxy)
+- [ ] DB yedekleme ve geri yükleme tatbikatı
+- [ ] Prometheus uyarıları (latency p95/p99, 5xx, error rate)
+- [ ] Log toplanması (Grafana/Loki/ELK)
+- [ ] Rate limiting ve idempotency etkin
+- [ ] CSP ve güvenlik başlıkları, CORS kısıtlı
 
 ## 📈 Performance Benchmarks
 

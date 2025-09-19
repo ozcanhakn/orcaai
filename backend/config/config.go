@@ -1,79 +1,93 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
 )
 
 type Config struct {
-	DatabaseURL    string
-	RedisURL       string
-	JWTSecret      string
-	Port           string
-	
+	DatabaseURL string
+	RedisURL    string
+	JWTSecret   string
+	Port        string
+
 	// AI Providers
-	OpenAIAPIKey     string
-	ClaudeAPIKey     string
-	GeminiAPIKey     string
-	
+	OpenAIAPIKey string
+	ClaudeAPIKey string
+	GeminiAPIKey string
+
 	// Cache settings
-	CacheEnabled     bool
-	CacheExpiration  time.Duration
-	
+	CacheEnabled    bool
+	CacheExpiration time.Duration
+
 	// Rate limiting
-	RateLimit        int
-	RateLimitWindow  time.Duration
-	
+	RateLimit       int
+	RateLimitWindow time.Duration
+
 	// Monitoring
 	PrometheusEnabled bool
-	LogLevel         string
-	
+	LogLevel          string
+
 	// Python worker
-	PythonWorkerURL  string
+	PythonWorkerURL string
 }
 
 func Load() *Config {
+	// Debug environment variables
+	fmt.Printf("DEBUG: Environment variables:\n")
+	fmt.Printf("  DB_HOST: %s\n", os.Getenv("DB_HOST"))
+	fmt.Printf("  DB_PORT: %s\n", os.Getenv("DB_PORT"))
+	fmt.Printf("  DB_NAME: %s\n", os.Getenv("DB_NAME"))
+	fmt.Printf("  DB_USER: %s\n", os.Getenv("DB_USER"))
+	fmt.Printf("  REDIS_ADDR: %s\n", os.Getenv("REDIS_ADDR"))
+	fmt.Printf("  PORT: %s\n", os.Getenv("PORT"))
+
 	// Construct database URL from environment variables if they exist
-	dbHost := getEnv("DB_HOST", "localhost")
+	dbHost := getEnv("DB_HOST", "postgres")
 	dbPort := getEnv("DB_PORT", "5432")
-	dbName := getEnv("DB_NAME", "orcaai")
-	dbUser := getEnv("DB_USER", "orcaai_user")
-	dbPassword := getEnv("DB_PASSWORD", "orcaai_password")
-	
-	// If DB_HOST is set and not localhost, construct the database URL from components
-	var databaseURL string
-	if dbHost != "localhost" || os.Getenv("DB_HOST") != "" {
-		databaseURL = "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
-	} else {
-		databaseURL = getEnv("DATABASE_URL", "postgres://localhost/orcaai?sslmode=disable")
-	}
-	
+	dbName := getEnv("DB_NAME", "orcaaidb")
+	dbUser := getEnv("DB_USER", "postgres")
+	dbPassword := getEnv("DB_PASSWORD", "123456789")
+
+	// Construct the database URL from components
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	fmt.Printf("DEBUG: Constructed database URL: %s\n", databaseURL)
+
+	// Redis URL
+	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
+	redisURL := "redis://" + redisAddr
+
+	fmt.Printf("DEBUG: Constructed Redis URL: %s\n", redisURL)
+
 	return &Config{
-		DatabaseURL:      databaseURL,
-		RedisURL:         getEnv("REDIS_URL", "redis://localhost:6379"),
-		JWTSecret:        getEnv("JWT_SECRET", "your-super-secret-jwt-key-change-this"),
-		Port:            getEnv("PORT", "8080"),
-		
+		DatabaseURL: databaseURL,
+		RedisURL:    redisURL,
+		JWTSecret:   getEnv("JWT_SECRET", "your-jwt-secret-here"),
+		Port:        getEnv("PORT", "8080"),
+
 		// AI Providers
-		OpenAIAPIKey:    getEnv("OPENAI_API_KEY", ""),
-		ClaudeAPIKey:    getEnv("CLAUDE_API_KEY", ""),
-		GeminiAPIKey:    getEnv("GEMINI_API_KEY", ""),
-		
+		OpenAIAPIKey: getEnv("OPENAI_API_KEY", ""),
+		ClaudeAPIKey: getEnv("CLAUDE_API_KEY", ""),
+		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+
 		// Cache
 		CacheEnabled:    getBoolEnv("CACHE_ENABLED", true),
 		CacheExpiration: getDurationEnv("CACHE_EXPIRATION", 24*time.Hour),
-		
+
 		// Rate limiting
 		RateLimit:       getIntEnv("RATE_LIMIT", 100),
 		RateLimitWindow: getDurationEnv("RATE_LIMIT_WINDOW", time.Hour),
-		
+
 		// Monitoring
 		PrometheusEnabled: getBoolEnv("PROMETHEUS_ENABLED", true),
-		LogLevel:         getEnv("LOG_LEVEL", "info"),
-		
+		LogLevel:          getEnv("LOG_LEVEL", "info"),
+
 		// Python worker
-		PythonWorkerURL: getEnv("PYTHON_WORKER_URL", "http://localhost:8001"),
+		PythonWorkerURL: getEnv("PYTHON_WORKER_URL", "http://ai-worker:8001"),
 	}
 }
 

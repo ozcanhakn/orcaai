@@ -1,9 +1,11 @@
 package database
 
 import (
-	"database/sql"
-	"log"
 	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
@@ -15,19 +17,45 @@ var (
 )
 
 func Connect(databaseURL string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		return nil, err
+	log.Printf("🔄 Attempting to connect to database with URL: %s", databaseURL)
+
+	var db *sql.DB
+	var err error
+
+	// Retry logic for database connection
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		db, err = sql.Open("postgres", databaseURL)
+		if err != nil {
+			log.Printf("❌ Failed to open database connection (attempt %d/%d): %v", i+1, maxRetries, err)
+			time.Sleep(time.Second * 2)
+			continue
+		}
+
+		// Test the connection
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err = db.PingContext(ctx)
+		cancel()
+
+		if err != nil {
+			log.Printf("❌ Failed to ping database (attempt %d/%d): %v", i+1, maxRetries, err)
+			db.Close()
+			time.Sleep(time.Second * 2)
+			continue
+		}
+
+		// Connection successful
+		break
 	}
 
-	// Test the connection
-	if err := db.Ping(); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database after %d attempts: %v", maxRetries, err)
 	}
 
 	// Set connection pool settings
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(time.Hour)
 
 	DB = db
 	log.Println("✅ Connected to PostgreSQL")
@@ -35,24 +63,41 @@ func Connect(databaseURL string) (*sql.DB, error) {
 	// Run migrations
 	if err := runMigrations(db); err != nil {
 		log.Printf("⚠️  Migration error: %v", err)
+		return db, err
 	}
 
 	return db, nil
 }
 
 func ConnectRedis(redisURL string) *redis.Client {
+	log.Printf("🔄 Attempting to connect to Redis with URL: %s", redisURL)
+
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		log.Fatalf("Failed to parse Redis URL: %v", err)
+		log.Fatalf("❌ Failed to parse Redis URL: %v", err)
 	}
 
 	client := redis.NewClient(opt)
 
-	// Test connection
-	ctx := context.Background()
-	_, err = client.Ping(ctx).Result()
+	// Test connection with retry logic
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_, err = client.Ping(ctx).Result()
+		cancel()
+
+		if err != nil {
+			log.Printf("❌ Failed to connect to Redis (attempt %d/%d): %v", i+1, maxRetries, err)
+			time.Sleep(time.Second * 2)
+			continue
+		}
+
+		// Connection successful
+		break
+	}
+
 	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		log.Fatalf("❌ Failed to connect to Redis after %d attempts: %v", maxRetries, err)
 	}
 
 	Redis = client
@@ -61,9 +106,11 @@ func ConnectRedis(redisURL string) *redis.Client {
 }
 
 func runMigrations(db *sql.DB) error {
+	log.Println("🔄 Running database migrations...")
+
 	migrations := []string{
 		`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`,
-		
+
 		`CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			email VARCHAR(255) UNIQUE NOT NULL,
@@ -73,7 +120,7 @@ func runMigrations(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW()
 		);`,
-		
+
 		`CREATE TABLE IF NOT EXISTS api_keys (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -83,7 +130,7 @@ func runMigrations(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT NOW(),
 			is_active BOOLEAN DEFAULT TRUE
 		);`,
-		
+
 		`CREATE TABLE IF NOT EXISTS request_logs (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -99,7 +146,7 @@ func runMigrations(db *sql.DB) error {
 			error_message TEXT,
 			created_at TIMESTAMP DEFAULT NOW()
 		);`,
-		
+
 		`CREATE TABLE IF NOT EXISTS ai_providers (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			name VARCHAR(100) UNIQUE NOT NULL,
@@ -112,7 +159,7 @@ func runMigrations(db *sql.DB) error {
 			priority INTEGER DEFAULT 1,
 			created_at TIMESTAMP DEFAULT NOW()
 		);`,
-		
+
 		`CREATE TABLE IF NOT EXISTS user_preferences (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -122,7 +169,7 @@ func runMigrations(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW()
 		);`,
-		
+
 		// Indexes for performance
 		`CREATE INDEX IF NOT EXISTS idx_request_logs_user_id ON request_logs(user_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_request_logs_created_at ON request_logs(created_at);`,
@@ -130,9 +177,10 @@ func runMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);`,
 	}
 
-	for _, migration := range migrations {
+	for i, migration := range migrations {
+		log.Printf("🔄 Running migration %d/%d", i+1, len(migrations))
 		if _, err := db.Exec(migration); err != nil {
-			return err
+			return fmt.Errorf("migration %d failed: %v", i+1, err)
 		}
 	}
 
