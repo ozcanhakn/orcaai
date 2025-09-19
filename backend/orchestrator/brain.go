@@ -153,9 +153,12 @@ func detectTaskType(prompt string) string {
 }
 
 func calculateComplexity(prompt string) float64 {
-	// Basic complexity calculation (can be enhanced)
-	wordCount := len(strings.Fields(prompt))
-	return math.Min(float64(wordCount)/1000.0, 1.0)
+    // Basic complexity calculation (can be enhanced)
+    wordCount := len(strings.Fields(prompt))
+    if wordCount <= 0 { return 0 }
+    ratio := float64(wordCount) / 1000.0
+    if ratio > 1.0 { ratio = 1.0 }
+    return ratio
 }
 
 func estimateTokenCount(prompt string) int {
