@@ -1,13 +1,11 @@
 package orchestrator
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"sort"
-	"strings"
-	"time"
+    "context"
+    "fmt"
+    "sort"
+    "strings"
+    "time"
 )
 
 // TaskProfile represents the analyzed characteristics of an AI task
@@ -33,16 +31,14 @@ type ProviderScore struct {
 
 // AIBrain handles intelligent routing decisions
 type AIBrain struct {
-	providers     []*Provider
-	metrics       *MetricsCollector
-	cache         *Cache
-	loadBalancer  *LoadBalancer
+    providers    []*Provider
+    metrics      *MetricsCollector
+    loadBalancer *LoadBalancer
 }
 
 func NewAIBrain() *AIBrain {
 	return &AIBrain{
 		metrics:      NewMetricsCollector(),
-		cache:        NewCache(),
 		loadBalancer: NewLoadBalancer(),
 	}
 }
@@ -54,12 +50,12 @@ func (b *AIBrain) AnalyzeTask(ctx context.Context, prompt string, options map[st
 		Type:       detectTaskType(prompt),
 		Complexity: calculateComplexity(prompt),
 		TokenEstimate: estimateTokenCount(prompt),
-		Priority:    getPriorityFromOptions(options),
-		MaxBudget:   getBudgetFromOptions(options),
+        Priority:    getPriorityFromOptions(options),
+        MaxBudget:   getBudgetFromOptions(options),
 	}
 
 	// Analyze required capabilities
-	profile.RequiredCAPs = analyzeRequiredCapabilities(prompt, options)
+    profile.RequiredCAPs = analyzeRequiredCapabilities(prompt, options)
 	
 	return profile, nil
 }
@@ -126,7 +122,7 @@ func (b *AIBrain) scoreProvider(ctx context.Context, provider *Provider, profile
 		fmt.Sprintf("Speed score: %.2f (avg latency: %dms)", speedScore, provider.AvgLatency))
 
 	// Quality Score (0-1) based on historical metrics
-	qualityScore := calculateQualityScore(metrics, profile)
+    qualityScore := qualityScoreFromMetrics(metrics, profile)
 	score.QualityScore = qualityScore
 	score.ReasoningLog = append(score.ReasoningLog, 
 		fmt.Sprintf("Quality score: %.2f (success rate: %.2f%%)", qualityScore, metrics.SuccessRate*100))
@@ -162,8 +158,9 @@ func calculateComplexity(prompt string) float64 {
 }
 
 func estimateTokenCount(prompt string) int {
-	// Rough estimate (can be enhanced)
-	return len(strings.Fields(prompt)) * 1.3
+    // Rough estimate (can be enhanced)
+    words := len(strings.Fields(prompt))
+    return int(float64(words) * 1.3)
 }
 
 func providerMeetsRequirements(provider *Provider, profile *TaskProfile) bool {
@@ -183,7 +180,7 @@ func providerMeetsRequirements(provider *Provider, profile *TaskProfile) bool {
 	return true
 }
 
-func calculateQualityScore(metrics *ProviderMetrics, profile *TaskProfile) float64 {
+func qualityScoreFromMetrics(metrics *ProviderMetrics, profile *TaskProfile) float64 {
 	// Combine various quality metrics
 	successWeight := 0.5
 	errorWeight := 0.3
@@ -193,7 +190,22 @@ func calculateQualityScore(metrics *ProviderMetrics, profile *TaskProfile) float
 	errorScore := 1.0 - metrics.ErrorRate
 	timeoutScore := 1.0 - metrics.TimeoutRate
 
-	return (successScore * successWeight) + 
-	       (errorScore * errorWeight) + 
-	       (timeoutScore * timeoutWeight)
+    return (successScore * successWeight) +
+           (errorScore * errorWeight) +
+           (timeoutScore * timeoutWeight)
+}
+
+// Stubs for option parsing and capability analysis
+func getPriorityFromOptions(options map[string]interface{}) int {
+    if v, ok := options["priority"].(int); ok { return v }
+    return 3
+}
+
+func getBudgetFromOptions(options map[string]interface{}) float64 {
+    if v, ok := options["max_budget"].(float64); ok { return v }
+    return 1.0
+}
+
+func analyzeRequiredCapabilities(prompt string, options map[string]interface{}) []string {
+    return []string{"text-generation"}
 }

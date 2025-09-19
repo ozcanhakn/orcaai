@@ -376,7 +376,7 @@ func calculateScore(provider Provider, promptLength int, taskType string) float6
 	reliabilityScore := provider.Reliability
 
 	// Quality score based on model capabilities and task match
-	qualityScore := calculateQualityScore(provider, taskType)
+    qualityScore := calculateQualityScore(provider, taskType)
 
 	// Token capacity consideration
 	tokenCapacityScore := 1.0
